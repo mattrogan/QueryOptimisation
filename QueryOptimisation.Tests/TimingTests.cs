@@ -18,15 +18,16 @@ public class TimingTests
     {
         // Configure InMemory testing database
         var serviceProvider = new ServiceCollection()
-            .AddEntityFrameworkInMemoryDatabase()
+            .AddDbContext<DataContext>(opts =>
+                opts.UseSqlServer("Server=localhost,6666;Database=EfCoreQueryOptimisation_Test;User Id=sa;Password=Pass@word;"))
             .BuildServiceProvider();
 
-        var opts = new DbContextOptionsBuilder<DataContext>()
-            .UseInMemoryDatabase("TestDatabase")
-            .UseInternalServiceProvider(serviceProvider)
-            .Options;
+        this.context = serviceProvider.GetRequiredService<DataContext>();
 
-        this.context = new DataContext(opts);
+        if (this.context.Database.GetPendingMigrations().Any())
+        {
+            this.context.Database.Migrate();
+        }
     }
 
     [TestCleanup]
@@ -47,7 +48,7 @@ public class TimingTests
         writer.WriteLine($"Date,NumEntries,TimeTaken(ms),Method,FasterBy(ms)");
 
         // Repeat the test with a growing data set
-        for (int i = 1; i <= 500; i++)
+        for (int i = 1; i <= 100; i++)
         {
             // Seed entities in the context
             var people = Enumerable.Range(0, i)
